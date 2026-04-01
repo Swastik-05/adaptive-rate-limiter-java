@@ -1,4 +1,5 @@
 import executor.RequestHandler;
+import executor.SequentialProcessor;
 import limiter.RateLimiter;
 import metrics.MetricsCollector;
 
@@ -23,7 +24,29 @@ public class Main {
         System.out.print("Enter total number of requests: ");
         int totalRequests = scanner.nextInt();
 
-        // --- Initialize ---
+        // ================================
+        // 🔴 SEQUENTIAL EXECUTION
+        // ================================
+        System.out.println("\n=== Sequential Execution ===");
+
+        MetricsCollector seqMetrics = new MetricsCollector();
+        RateLimiter seqLimiter = new RateLimiter(bucketCapacity, refillRate, seqMetrics);
+
+        SequentialProcessor sequentialProcessor =
+                new SequentialProcessor(seqLimiter, seqMetrics);
+
+        long seqStart = System.currentTimeMillis();
+        long seqTime = sequentialProcessor.processRequests(totalRequests);
+        long seqEnd = System.currentTimeMillis();
+
+        System.out.println("Sequential Time: " + (seqEnd - seqStart) + " ms");
+        System.out.println(seqMetrics.getSummary());
+
+        // ================================
+        // 🔵 MULTITHREADED EXECUTION (YOUR ORIGINAL SYSTEM)
+        // ================================
+        System.out.println("\n=== Multithreaded Execution ===\n");
+
         MetricsCollector metrics = new MetricsCollector();
 
         RateLimiter rateLimiter = new RateLimiter(
@@ -38,15 +61,28 @@ public class Main {
                 threadPoolSize
         );
 
-        // --- Run Simulation ---
-        System.out.println("\n=== Simulation Start ===\n");
+        long parallelStart = System.currentTimeMillis();
 
+        // 👉 This shows ALLOWED / REJECTED logs (important)
         handler.simulateRequests(totalRequests);
         handler.shutdown();
 
-        // --- Output ---
+        long parallelEnd = System.currentTimeMillis();
+        long parallelTime = parallelEnd - parallelStart;
+
         System.out.println("\n=== Simulation Complete ===");
+        System.out.println("Multithreaded Time: " + parallelTime + " ms");
         System.out.println(metrics.getSummary());
+
+        // ================================
+        // 🟢 PERFORMANCE COMPARISON
+        // ================================
+        System.out.println("\n=== Performance Comparison ===");
+
+        double improvement = (double) seqTime / parallelTime;
+
+        System.out.println("Speed Improvement: " +
+                String.format("%.2f", improvement) + "x faster");
 
         scanner.close();
     }

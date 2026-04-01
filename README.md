@@ -2,7 +2,7 @@
 
 ## 📌 Overview
 
-This project implements a **multi-threaded rate limiter** using the **Token Bucket algorithm** with per-user concurrency control. It simulates real-world backend behavior under varying load conditions and demonstrates **system stability, controlled throughput, and backpressure handling**.
+This project implements a **multi-threaded rate limiter** using the **Token Bucket algorithm** with per-user concurrency control. It simulates real-world backend behavior under load and demonstrates **system stability, controlled throughput, and backpressure handling**.
 
 ---
 
@@ -11,72 +11,44 @@ This project implements a **multi-threaded rate limiter** using the **Token Buck
 * Per-user rate limiting using **ConcurrentHashMap**
 * **Token Bucket algorithm** for request throttling
 * Multi-threaded request simulation using **ExecutorService**
+* **Sequential vs Multithreaded benchmarking**
 * Real-time metrics tracking:
 
   * Throughput (req/s)
   * Average latency (ms)
   * Acceptance & rejection rate
-* CLI-based configuration (dynamic inputs at runtime)
+* CLI-based configuration (runtime inputs)
 
 ---
 
 ## 🧠 System Design
 
 ```
-Client Requests
-      ↓
-Thread Pool (ExecutorService)
-      ↓
-RateLimiter
-      ↓
-ConcurrentHashMap<userId, TokenBucket>
-      ↓
-TokenBucket (synchronized)
-      ↓
-MetricsCollector
+Request → Thread Pool → RateLimiter → TokenBucket → Metrics
 ```
 
 ---
 
 ## 🧪 Experimental Results
 
-### ✅ Test 1 — Low Load
+### 🔥 High Load Test
 
-* Requests: 20
-* Allowed: 100%
-* Rejected: 0%
+* Requests: 100
+* Threads: 20
+* Allowed: ~15%
+* Rejected: ~85%
 * Latency: ~50ms
-* Behavior: System underutilized
 
 ---
 
-### ⚖️ Test 2 — Medium Load
+## ⚡ Performance Comparison
 
-* Requests: 100
-* Allowed: 15%
-* Rejected: 85%
-* Latency: ~51ms
-* Behavior: Rate limiting active, throughput stabilized
+| Execution Type | Time    |
+| -------------- | ------- |
+| Sequential     | ~935 ms |
+| Multithreaded  | ~66 ms  |
 
----
-
-### 🔴 Test 3 — High Load
-
-* Requests: 100
-* Allowed: 15%
-* Rejected: 85%
-* Latency: ~51ms
-* Behavior: Throughput capped, system protected
-
----
-
-### 🔥 Test 4 — Extreme Load
-
-* Requests: 200
-* Allowed: 3%
-* Rejected: 97%
-* Latency: ~52ms
-* Behavior: Strong backpressure, stable latency
+👉 **~14x faster using multithreading**
 
 ---
 
@@ -85,18 +57,27 @@ MetricsCollector
 * System maintains **stable latency (~50ms)** even under heavy load
 * Throughput reaches a **controlled upper bound**
 * Rejection rate increases with load → **graceful degradation**
-* Prevents system overload by rejecting excess requests
+* Multithreading significantly improves performance without affecting correctness
 
 ---
 
 ## 💡 Engineering Highlights
 
-* Used `ConcurrentHashMap` for thread-safe per-user bucket management
-* Applied `synchronized` in TokenBucket to prevent race conditions
-* Implemented sliding window metrics without locking (high performance)
-* Designed system for **controlled degradation instead of failure**
+* Used `ConcurrentHashMap` for thread-safe per-user isolation
+* Applied `synchronized` in TokenBucket to ensure atomic operations
+* Used `ExecutorService` for controlled concurrency
+* Benchmarked system against sequential execution to validate performance gains
 
 ---
+## 🔄 Recent Enhancements
+
+* Added a **SequentialProcessor** module to simulate request handling without concurrency (baseline system).
+* Integrated **performance benchmarking** in `Main.java` to compare:
+
+  * Sequential execution
+  * Multithreaded execution
+* Measured total execution time and calculated **speed improvement (~14x faster)**.
+* Demonstrated how **parallel processing improves throughput** while maintaining consistent rate limiting behavior.
 
 ## ▶️ How to Run
 
@@ -110,20 +91,20 @@ java Main
 ## 🧾 Example Output
 
 ```
-Total Requests   : 100
+Sequential Time: ~935 ms
+Multithreaded Time: ~66 ms
+Speed Improvement: ~14x faster
+
 Allowed Requests : 15
 Rejected Requests: 85
-Throughput       : 10.00 req/s
-Avg Latency      : 50.80 ms
-Acceptance Rate  : 15.00 %
-Rejection Rate   : 85.00 %
+Avg Latency      : ~50 ms
 ```
 
 ---
 
 ## 🎯 Conclusion
 
-This project demonstrates how backend systems handle high traffic using **rate limiting and concurrency control**, ensuring **system stability, predictable performance, and graceful degradation under load**.
+This project demonstrates how backend systems handle high traffic using **rate limiting + concurrency**, ensuring **stable performance and controlled degradation under load**.
 
 ---
 
